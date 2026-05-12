@@ -67,14 +67,14 @@
     border-color: #5a4a3a;
   }
   .color-btn {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     border: 2px solid transparent;
     cursor: pointer;
     padding: 0;
     transition: transform 0.12s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.10);
   }
   .color-btn:hover { transform: scale(1.1); }
   .color-btn.active {
@@ -93,11 +93,11 @@
   }
   .reset-btn:hover { background: #6f5d4a; }
   input[type=range] {
-    width: 80px;
+    width: 90px;
     accent-color: #5a4a3a;
   }
   canvas {
-    background: linear-gradient(180deg, rgba(252, 246, 234, 0.5) 0%, rgba(232, 216, 196, 0.5) 100%);
+    background: linear-gradient(180deg, rgba(252, 246, 234, 0.55) 0%, rgba(232, 216, 196, 0.55) 100%);
     border-radius: 14px;
     box-shadow: 0 8px 30px rgba(90, 74, 58, 0.12);
     display: block;
@@ -127,7 +127,7 @@
     </div>
     <div class="group">
       <span class="group-label">붓</span>
-      <input type="range" id="brush" min="2" max="14" value="5">
+      <input type="range" id="brush" min="4" max="36" value="10">
     </div>
     <button class="reset-btn" id="reset">비우기</button>
   </div>
@@ -140,38 +140,40 @@
 // ============================================================================
 const CANVAS_W = 500
 const CANVAS_H = 600
-const CELL = 2                  // pixel size per cell (lower = finer sand)
-const W = CANVAS_W / CELL       // grid width in cells
-const H = CANVAS_H / CELL       // grid height in cells
+const W = CANVAS_W   // grid = canvas (1 cell per pixel)
+const H = CANVAS_H
 
+// Soft pastel palette
 const COLORS = [
-  '#f5e9d4', // white sand
-  '#e8c272', // yellow
-  '#d97e3a', // orange
-  '#b54336', // crimson
-  '#e896b0', // pink
-  '#8765b2', // purple
-  '#4a7eb0', // blue
-  '#58a8a5', // teal
-  '#95c47a', // green
-  '#7a4f30', // brown
-  '#2a2520', // near-black
+  '#f7ecd8', // 크림
+  '#f5dba8', // 버터
+  '#f4c4a0', // 피치
+  '#eda8a8', // 더스티 로즈
+  '#e8a8c4', // 소프트 핑크
+  '#d8b8e0', // 라벤더
+  '#b8c0e0', // 페리윙클
+  '#a8c8e0', // 스카이
+  '#a8d8c0', // 민트
+  '#c8d8a0', // 세이지
+  '#c8a890', // 토프
 ]
-const WALL_COLOR = '#bdaa90'
-const WALL_ALPHA = 0x70         // semi-transparent for a glass-ish look
+const WALL_COLOR = '#cdb8a0'
+const WALL_ALPHA = 0x55   // glassy
 
 const EMPTY = 0, SAND = 1, WALL = 2
 const cells  = new Uint8Array(W * H)
 const colors = new Uint32Array(W * H)
+const vel    = new Uint8Array(W * H)   // per-cell fall velocity (0..MAX_VEL)
+const MAX_VEL = 7
 
 let currentColor = packColor(COLORS[1])
 let currentBottle = 'mason'
-let brushSize = 5
+let brushSize = 10
 let isPouring = false
 let mouseX = 0, mouseY = 0
 
 // ============================================================================
-// Color packing — ImageData is RGBA little-endian, so Uint32 = ABGR
+// Color packing (ImageData = RGBA little-endian → Uint32 = ABGR)
 // ============================================================================
 function packColor(hex, alpha = 0xff) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -179,12 +181,24 @@ function packColor(hex, alpha = 0xff) {
   const b = parseInt(hex.slice(5, 7), 16)
   return (alpha << 24) | (b << 16) | (g << 8) | r
 }
+function jitterColor(packed, amount) {
+  // Slightly shift R/G/B per grain so a pile of one color still has texture.
+  const r = packed & 0xff
+  const g = (packed >>> 8) & 0xff
+  const b = (packed >>> 16) & 0xff
+  const a = (packed >>> 24) & 0xff
+  const jr = (Math.random() - 0.5) * amount * 2
+  const jg = (Math.random() - 0.5) * amount * 2
+  const jb = (Math.random() - 0.5) * amount * 2
+  return (a << 24)
+       | ((Math.max(0, Math.min(255, b + jb)) | 0) << 16)
+       | ((Math.max(0, Math.min(255, g + jg)) | 0) << 8)
+       | (Math.max(0, Math.min(255, r + jr)) | 0)
+}
 const WALL_PACKED = packColor(WALL_COLOR, WALL_ALPHA)
-function idx(x, y) { return y * W + x }
 
 // ============================================================================
-// Bottle shapes — halfWidthAt(y, h) returns inner half-width in cells, or -1
-// if this y is outside the bottle's vertical range.
+// Bottle shapes — halfWidthAt(y, h) → inner half-width in cells (or -1)
 // ============================================================================
 const BOTTLES = {
   mason: (y, h) => {
@@ -196,7 +210,6 @@ const BOTTLES = {
     const top = h * 0.06, bot = h * 0.94
     if (y < top || y > bot) return -1
     const t = (y - top) / (bot - top)
-    // Narrow neck, wide upper-middle, taper at bottom
     const profile = 0.08 + 0.20 * Math.sin(Math.min(1, t * 1.15) * Math.PI) + 0.05 * (1 - t)
     return Math.floor(W * Math.max(0.07, profile))
   },
@@ -204,7 +217,6 @@ const BOTTLES = {
     const top = h * 0.07, bot = h * 0.93
     if (y < top || y > bot) return -1
     const t = (y - top) / (bot - top)
-    // Wide top, pinch middle, wide bottom
     const profile = 0.23 - 0.13 * Math.sin(t * Math.PI)
     return Math.floor(W * profile)
   },
@@ -212,17 +224,17 @@ const BOTTLES = {
     const top = h * 0.05, bot = h * 0.93
     if (y < top || y > bot) return -1
     const t = (y - top) / (bot - top)
-    if (t < 0.22) return Math.floor(W * 0.07)               // narrow neck
+    if (t < 0.22) return Math.floor(W * 0.07)
     const b = (t - 0.22) / 0.78
-    // Round bulb that flattens toward the bottom
     const r = Math.sqrt(Math.max(0, 1 - Math.pow(2 * b - 1, 2))) * 0.22
     return Math.floor(W * Math.max(0.07, r + 0.07))
   },
 }
 
+const WALL_THICKNESS = 5
+
 function loadBottle(name) {
-  cells.fill(0)
-  colors.fill(0)
+  cells.fill(0); colors.fill(0); vel.fill(0)
   const fn = BOTTLES[name]
   const cx = Math.floor(W / 2)
   let baseY = -1, baseHW = 0
@@ -232,23 +244,23 @@ function loadBottle(name) {
     if (hw < 0) continue
     if (y > baseY) { baseY = y; baseHW = hw }
     const left = cx - hw, right = cx + hw
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= WALL_THICKNESS; i++) {
       const lx = left - i, rx = right + i
-      if (lx >= 0) { cells[idx(lx, y)] = WALL; colors[idx(lx, y)] = WALL_PACKED }
-      if (rx < W)  { cells[idx(rx, y)] = WALL; colors[idx(rx, y)] = WALL_PACKED }
+      if (lx >= 0) { cells[y * W + lx] = WALL; colors[y * W + lx] = WALL_PACKED }
+      if (rx < W)  { cells[y * W + rx] = WALL; colors[y * W + rx] = WALL_PACKED }
     }
   }
 
   // Bottom cap
   if (baseY >= 0) {
-    const l = cx - baseHW - 3, r = cx + baseHW + 3
-    for (let i = 1; i <= 3; i++) {
+    const l = cx - baseHW - WALL_THICKNESS, r = cx + baseHW + WALL_THICKNESS
+    for (let i = 1; i <= WALL_THICKNESS; i++) {
       const wy = baseY + i
       if (wy >= H) break
       for (let x = l; x <= r; x++) {
         if (x >= 0 && x < W) {
-          cells[idx(x, wy)] = WALL
-          colors[idx(x, wy)] = WALL_PACKED
+          cells[wy * W + x] = WALL
+          colors[wy * W + x] = WALL_PACKED
         }
       }
     }
@@ -256,96 +268,119 @@ function loadBottle(name) {
 }
 
 // ============================================================================
-// Simulation — falling sand cellular automaton
-// Iterate bottom-up so each grain moves at most one cell per step.
+// Simulation — velocity-based falling sand
+// Bottom-up scan; each sand grain falls as many cells per step as its
+// current velocity allows (gravity → grain accelerates while in free fall).
+// Sliding diagonally resets velocity (friction).
 // ============================================================================
 function step() {
   for (let y = H - 2; y >= 0; y--) {
+    const baseRow = y * W
     const dirRight = (y & 1) === 0
     const xStart = dirRight ? 0 : W - 1
     const xEnd = dirRight ? W : -1
     const dx = dirRight ? 1 : -1
+
     for (let x = xStart; x !== xEnd; x += dx) {
-      if (cells[idx(x, y)] !== SAND) continue
-      // Try straight down
-      if (cells[idx(x, y + 1)] === EMPTY) {
-        moveCell(x, y, x, y + 1)
+      const ci = baseRow + x
+      if (cells[ci] !== SAND) continue
+
+      const v = vel[ci]
+      const maxFall = Math.min(MAX_VEL, v + 1)
+
+      // Try to fall straight down up to maxFall cells.
+      let landY = y
+      for (let dy2 = 1; dy2 <= maxFall; dy2++) {
+        const ny = y + dy2
+        if (ny >= H) break
+        if (cells[ny * W + x] !== EMPTY) break
+        landY = ny
+      }
+
+      if (landY > y) {
+        const ni = landY * W + x
+        cells[ni] = SAND
+        colors[ni] = colors[ci]
+        vel[ni] = Math.min(MAX_VEL, v + 1)
+        cells[ci] = EMPTY; colors[ci] = 0; vel[ci] = 0
         continue
       }
-      // Then diagonals, randomized
+
+      // Could not fall — try diagonal slide (randomized).
       const slip = Math.random() < 0.5 ? -1 : 1
-      const ax = x + slip, bx = x - slip
-      if (ax >= 0 && ax < W && cells[idx(ax, y + 1)] === EMPTY) {
-        moveCell(x, y, ax, y + 1)
-        continue
+      const ax = x + slip
+      if (ax >= 0 && ax < W) {
+        const ai = (y + 1) * W + ax
+        if (cells[ai] === EMPTY) {
+          cells[ai] = SAND; colors[ai] = colors[ci]; vel[ai] = 0
+          cells[ci] = EMPTY; colors[ci] = 0; vel[ci] = 0
+          continue
+        }
       }
-      if (bx >= 0 && bx < W && cells[idx(bx, y + 1)] === EMPTY) {
-        moveCell(x, y, bx, y + 1)
+      const bx = x - slip
+      if (bx >= 0 && bx < W) {
+        const bi = (y + 1) * W + bx
+        if (cells[bi] === EMPTY) {
+          cells[bi] = SAND; colors[bi] = colors[ci]; vel[bi] = 0
+          cells[ci] = EMPTY; colors[ci] = 0; vel[ci] = 0
+          continue
+        }
       }
+      vel[ci] = 0   // settled
     }
   }
+
   // Sweep sand off the bottom edge (no floor outside the bottle)
+  const bottomRow = (H - 1) * W
   for (let x = 0; x < W; x++) {
-    if (cells[idx(x, H - 1)] === SAND) {
-      cells[idx(x, H - 1)] = EMPTY
-      colors[idx(x, H - 1)] = 0
+    if (cells[bottomRow + x] === SAND) {
+      cells[bottomRow + x] = EMPTY
+      colors[bottomRow + x] = 0
+      vel[bottomRow + x] = 0
     }
   }
 }
 
-function moveCell(fx, fy, tx, ty) {
-  cells[idx(tx, ty)] = SAND
-  colors[idx(tx, ty)] = colors[idx(fx, fy)]
-  cells[idx(fx, fy)] = EMPTY
-  colors[idx(fx, fy)] = 0
-}
-
-function pourAt(cx, cy, radius, color) {
-  const r2 = radius * radius
-  for (let dy = -radius; dy <= radius; dy++) {
-    for (let dx = -radius; dx <= radius; dx++) {
-      if (dx * dx + dy * dy > r2) continue
-      if (Math.random() > 0.25) continue   // sparse spray
-      const x = cx + dx, y = cy + dy
-      if (x < 0 || x >= W || y < 0 || y >= H) continue
-      if (cells[idx(x, y)] !== EMPTY) continue
-      cells[idx(x, y)] = SAND
-      colors[idx(x, y)] = color
-    }
+function pourAt(cx, cy, size, baseColor) {
+  // Emit a sparse stream-like spray at the cursor.
+  const count = Math.max(3, Math.floor(size * 1.3))
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2
+    const r = Math.random() * size
+    const ox = Math.cos(angle) * r
+    const oy = Math.sin(angle) * r * 0.45   // squashed vertically → thin band
+    const x = (cx + ox) | 0
+    const y = (cy + oy) | 0
+    if (x < 0 || x >= W || y < 0 || y >= H) continue
+    const ci = y * W + x
+    if (cells[ci] !== EMPTY) continue
+    cells[ci] = SAND
+    colors[ci] = jitterColor(baseColor, 10)
+    vel[ci] = 1
   }
 }
 
 // ============================================================================
-// Rendering — pack cells into ImageData via Uint32 view, then blit
+// Rendering — Uint32 view on ImageData, putImageData directly
 // ============================================================================
 const canvas = document.getElementById('canvas')
 const ctx = canvas.getContext('2d')
 const imgData = ctx.createImageData(W, H)
 const pixelView = new Uint32Array(imgData.data.buffer)
 
-const off = document.createElement('canvas')
-off.width = W
-off.height = H
-const offCtx = off.getContext('2d')
-
 function render() {
   for (let i = 0; i < cells.length; i++) {
     pixelView[i] = cells[i] === EMPTY ? 0 : colors[i]
   }
-  offCtx.putImageData(imgData, 0, 0)
-  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H)
-  ctx.imageSmoothingEnabled = false
-  ctx.drawImage(off, 0, 0, CANVAS_W, CANVAS_H)
+  ctx.putImageData(imgData, 0, 0)
 }
 
 // ============================================================================
 // Main loop
 // ============================================================================
 function tick() {
-  if (isPouring) {
-    pourAt(Math.floor(mouseX / CELL), Math.floor(mouseY / CELL), brushSize, currentColor)
-  }
-  step(); step()       // 2 sim steps per frame = snappier gravity
+  if (isPouring) pourAt(mouseX | 0, mouseY | 0, brushSize, currentColor)
+  step(); step()
   render()
   requestAnimationFrame(tick)
 }
