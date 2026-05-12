@@ -5,84 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f5efe3">
 <title>모래병</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
     margin: 0;
+    height: 100dvh;
+    overflow: hidden;
     overscroll-behavior: none;
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
   }
   body {
-    min-height: 100dvh;
-    background: linear-gradient(180deg, #f5efe3 0%, #ead8c4 100%);
+    background: linear-gradient(135deg, #f5efe3 0%, #ead8c4 100%);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', sans-serif;
     color: #5a4a3a;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    align-items: stretch;
     padding:
-      max(12px, env(safe-area-inset-top))
-      max(12px, env(safe-area-inset-right))
-      max(12px, env(safe-area-inset-bottom))
-      max(12px, env(safe-area-inset-left));
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
   }
-  h1 {
-    margin: 0 0 2px;
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+
+  /* --- sidebar ---------------------------------------------------------- */
+  .sidebar {
+    flex: 0 0 124px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 12px;
+    background: rgba(255, 252, 245, 0.55);
+    border-right: 1px solid rgba(90, 74, 58, 0.10);
+    overflow-y: auto;
   }
-  .subtitle {
-    margin: 0 0 10px;
-    font-size: 11px;
-    color: rgba(90, 74, 58, 0.55);
+  .sidebar-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     text-align: center;
+    color: #5a4a3a;
+    margin-bottom: 2px;
   }
-  .toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 12px;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 252, 245, 0.72);
-    border: 1px solid rgba(90, 74, 58, 0.10);
-    border-radius: 14px;
-    padding: 10px 12px;
-    margin-bottom: 10px;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    width: 100%;
-    max-width: 520px;
-  }
-  .group {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+  .group { display: flex; flex-direction: column; gap: 5px; }
   .group-label {
-    font-size: 11px;
+    font-size: 10px;
     color: rgba(90, 74, 58, 0.55);
-    margin-right: 2px;
-    flex-shrink: 0;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
   .shape-btn {
+    width: 100%;
     border: 1.5px solid rgba(90, 74, 58, 0.15);
-    background: rgba(255, 252, 245, 0.6);
-    border-radius: 10px;
-    padding: 8px 12px;
-    font-size: 13px;
+    background: rgba(255, 252, 245, 0.7);
+    border-radius: 8px;
+    padding: 7px 6px;
+    font-size: 12px;
     color: #5a4a3a;
-    min-height: 36px;
     transition: background 0.15s, color 0.15s;
     font-family: inherit;
     cursor: pointer;
+    min-height: 32px;
   }
   .shape-btn:active { background: rgba(90, 74, 58, 0.12); }
   .shape-btn.active {
@@ -90,116 +78,123 @@
     color: #f5efe3;
     border-color: #5a4a3a;
   }
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    justify-items: center;
+  }
   .color-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: 2.5px solid transparent;
     padding: 0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(0,0,0,0.04);
     transition: transform 0.12s;
     cursor: pointer;
   }
-  .color-btn:active { transform: scale(1.15); }
+  .color-btn:active { transform: scale(1.18); }
   .color-btn.active {
     border-color: #5a4a3a;
-    transform: scale(1.15);
+    transform: scale(1.18);
+  }
+  input[type=range] {
+    width: 100%;
+    accent-color: #5a4a3a;
+    height: 28px;
   }
   .reset-btn {
+    width: 100%;
     background: #5a4a3a;
     color: #f5efe3;
     font-weight: 600;
     border: none;
-    border-radius: 10px;
-    padding: 8px 14px;
-    font-size: 13px;
-    min-height: 36px;
+    border-radius: 8px;
+    padding: 9px 0;
+    font-size: 12px;
+    min-height: 34px;
     font-family: inherit;
     cursor: pointer;
+    margin-top: auto;
   }
   .reset-btn:active { background: #6f5d4a; }
-  input[type=range] {
+
+  /* --- canvas pane ------------------------------------------------------ */
+  .canvas-wrap {
     flex: 1;
-    min-width: 100px;
-    max-width: 180px;
-    accent-color: #5a4a3a;
-    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    min-width: 0;
+    min-height: 0;
   }
   canvas {
-    background: linear-gradient(180deg, rgba(252, 246, 234, 0.55) 0%, rgba(232, 216, 196, 0.55) 100%);
+    /* Darker stone gradient — warm pastels read clearly on this. */
+    background: linear-gradient(180deg, #a89888 0%, #786858 100%);
     border-radius: 14px;
-    box-shadow: 0 8px 30px rgba(90, 74, 58, 0.12);
+    box-shadow:
+      0 14px 36px rgba(60, 48, 38, 0.32),
+      inset 0 0 0 1px rgba(90, 74, 58, 0.20);
     display: block;
     cursor: crosshair;
     touch-action: none;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
-    width: min(500px, calc(100vw - 24px), calc((100dvh - 270px) * 5 / 6));
-    aspect-ratio: 5 / 6;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 1 / 2;
+    width: auto;
     height: auto;
   }
-  .hint {
-    margin-top: 10px;
-    font-size: 11px;
-    color: rgba(90, 74, 58, 0.5);
-    text-align: center;
-    padding: 0 16px;
-  }
-  /* Only show hover effects on hoverable pointer devices (desktop) */
+
   @media (hover: hover) {
     .shape-btn:hover { background: rgba(255, 252, 245, 0.95); }
     .color-btn:hover { transform: scale(1.10); }
     .reset-btn:hover { background: #6f5d4a; }
   }
-  /* Landscape on small phones — toolbar to the side, canvas fills height */
-  @media (orientation: landscape) and (max-height: 500px) {
-    body { flex-direction: row; justify-content: center; gap: 10px; padding: 8px; }
-    h1, .subtitle, .hint { display: none; }
-    .toolbar {
-      margin-bottom: 0;
-      max-width: 240px;
-      flex: 0 0 auto;
-    }
-    canvas {
-      width: auto;
-      height: calc(100dvh - 16px);
-      max-height: 520px;
-      aspect-ratio: 5 / 6;
-    }
+  @media (max-width: 360px) {
+    .sidebar { flex: 0 0 104px; padding: 10px 8px; gap: 9px; }
+    .color-btn { width: 24px; height: 24px; }
+    .canvas-wrap { padding: 10px; }
   }
 </style>
 </head>
 <body>
-  <h1>모래병</h1>
-  <p class="subtitle">병을 골라 색을 선택하고, 드래그로 모래를 뿌려보세요</p>
+  <aside class="sidebar">
+    <div class="sidebar-title">모래병</div>
 
-  <div class="toolbar">
     <div class="group">
-      <span class="group-label">병</span>
+      <div class="group-label">병</div>
       <button class="shape-btn" data-shape="mason">메이슨</button>
       <button class="shape-btn" data-shape="vase">꽃병</button>
       <button class="shape-btn" data-shape="hourglass">호리병</button>
       <button class="shape-btn" data-shape="flask">플라스크</button>
     </div>
-    <div class="group" id="palette">
-      <span class="group-label">색</span>
-    </div>
+
     <div class="group">
-      <span class="group-label">붓</span>
-      <input type="range" id="brush" min="4" max="36" value="10">
-      <button class="reset-btn" id="reset">비우기</button>
+      <div class="group-label">색</div>
+      <div class="color-grid" id="palette"></div>
     </div>
-  </div>
 
-  <canvas id="canvas" width="500" height="600"></canvas>
+    <div class="group">
+      <div class="group-label">붓</div>
+      <input type="range" id="brush" min="4" max="32" value="10">
+    </div>
 
-  <p class="hint">위치를 옮겨가며 비대칭으로 쌓으면 더 예뻐요</p>
+    <button class="reset-btn" id="reset">비우기</button>
+  </aside>
+
+  <main class="canvas-wrap">
+    <canvas id="canvas" width="300" height="600"></canvas>
+  </main>
 
 <script>
 // ============================================================================
-// Config & state
+// Config & state — tall 1:2 canvas so the bottle fills the right pane.
 // ============================================================================
-const CANVAS_W = 500
+const CANVAS_W = 300
 const CANVAS_H = 600
 const W = CANVAS_W
 const H = CANVAS_H
@@ -208,8 +203,8 @@ const COLORS = [
   '#f7ecd8', '#f5dba8', '#f4c4a0', '#eda8a8', '#e8a8c4',
   '#d8b8e0', '#b8c0e0', '#a8c8e0', '#a8d8c0', '#c8d8a0', '#c8a890',
 ]
-const WALL_COLOR = '#cdb8a0'
-const WALL_ALPHA = 0x55
+const WALL_COLOR = '#efe2cc'
+const WALL_ALPHA = 0x90   // brighter glass against the darker canvas bg
 
 const EMPTY = 0, SAND = 1, WALL = 2
 const cells  = new Uint8Array(W * H)
@@ -248,39 +243,39 @@ function jitterColor(packed, amount) {
 const WALL_PACKED = packColor(WALL_COLOR, WALL_ALPHA)
 
 // ============================================================================
-// Bottle shapes
+// Bottle shapes — widened to fill the taller canvas
 // ============================================================================
 const BOTTLES = {
   mason: (y, h) => {
-    const top = h * 0.10, bot = h * 0.92
+    const top = h * 0.08, bot = h * 0.92
     if (y < top || y > bot) return -1
-    return Math.floor(W * 0.22)
+    return Math.floor(W * 0.35)
   },
   vase: (y, h) => {
-    const top = h * 0.06, bot = h * 0.94
+    const top = h * 0.05, bot = h * 0.94
     if (y < top || y > bot) return -1
     const t = (y - top) / (bot - top)
-    const profile = 0.08 + 0.20 * Math.sin(Math.min(1, t * 1.15) * Math.PI) + 0.05 * (1 - t)
-    return Math.floor(W * Math.max(0.07, profile))
+    const profile = 0.12 + 0.28 * Math.sin(Math.min(1, t * 1.15) * Math.PI) + 0.04 * (1 - t)
+    return Math.floor(W * Math.max(0.10, profile))
   },
   hourglass: (y, h) => {
-    const top = h * 0.07, bot = h * 0.93
+    const top = h * 0.06, bot = h * 0.93
     if (y < top || y > bot) return -1
     const t = (y - top) / (bot - top)
-    const profile = 0.23 - 0.13 * Math.sin(t * Math.PI)
+    const profile = 0.36 - 0.18 * Math.sin(t * Math.PI)
     return Math.floor(W * profile)
   },
   flask: (y, h) => {
-    const top = h * 0.05, bot = h * 0.93
+    const top = h * 0.04, bot = h * 0.93
     if (y < top || y > bot) return -1
     const t = (y - top) / (bot - top)
-    if (t < 0.22) return Math.floor(W * 0.07)
-    const b = (t - 0.22) / 0.78
-    const r = Math.sqrt(Math.max(0, 1 - Math.pow(2 * b - 1, 2))) * 0.22
-    return Math.floor(W * Math.max(0.07, r + 0.07))
+    if (t < 0.20) return Math.floor(W * 0.10)
+    const b = (t - 0.20) / 0.80
+    const r = Math.sqrt(Math.max(0, 1 - Math.pow(2 * b - 1, 2))) * 0.26
+    return Math.floor(W * Math.max(0.10, r + 0.10))
   },
 }
-const WALL_THICKNESS = 5
+const WALL_THICKNESS = 4
 
 function loadBottle(name) {
   cells.fill(0); colors.fill(0); vel.fill(0)
@@ -314,7 +309,7 @@ function loadBottle(name) {
 }
 
 // ============================================================================
-// Simulation
+// Simulation — velocity-based falling sand
 // ============================================================================
 function step() {
   for (let y = H - 2; y >= 0; y--) {
@@ -426,14 +421,14 @@ function tick() {
     let sum = 0
     for (let i = 0; i < 30; i++) sum += frameSamples[i]
     const avg = sum / 30
-    if (avg > 16 && simSteps > 1) { simSteps = 1; frameSamples.length = 0 }
-    else if (avg < 8 && simSteps < 2) { simSteps = 2; frameSamples.length = 0 }
+    if (avg > 14 && simSteps > 1) { simSteps = 1; frameSamples.length = 0 }
+    else if (avg < 6 && simSteps < 2) { simSteps = 2; frameSamples.length = 0 }
   }
   requestAnimationFrame(tick)
 }
 
 // ============================================================================
-// Input — pointer events with capture for drag-off-canvas
+// Input
 // ============================================================================
 function updateMouse(e) {
   const rect = canvas.getBoundingClientRect()
@@ -453,8 +448,6 @@ canvas.addEventListener('pointermove', (e) => {
 })
 canvas.addEventListener('pointerup',     () => { isPouring = false })
 canvas.addEventListener('pointercancel', () => { isPouring = false })
-
-// Block iOS double-tap zoom on the toolbar / canvas
 document.addEventListener('gesturestart', (e) => e.preventDefault())
 
 // ============================================================================
