@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f5efe3">
+<title>종이 오리기</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  body {
+    background: linear-gradient(135deg, #f5efe3 0%, #ead8c4 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', sans-serif;
+    color: #5a4a3a;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+  }
+
+  /* --- sidebar ---------------------------------------------------------- */
+  .sidebar {
+    flex: 0 0 124px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 12px;
+    background: rgba(255, 252, 245, 0.55);
+    border-right: 1px solid rgba(90, 74, 58, 0.10);
+    overflow-y: auto;
+  }
+  .sidebar-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: center;
+    color: #5a4a3a;
+    margin-bottom: 2px;
+  }
+  .group { display: flex; flex-direction: column; gap: 5px; }
+  .group-label {
+    font-size: 10px;
+    color: rgba(90, 74, 58, 0.55);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* N-fold chips */
+  .n-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+  }
+  .n-btn {
+    border: 1.5px solid rgba(90, 74, 58, 0.15);
+    background: rgba(255, 252, 245, 0.7);
+    border-radius: 8px;
+    padding: 7px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #5a4a3a;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .n-btn:active { background: rgba(90, 74, 58, 0.12); }
+  .n-btn.active {
+    background: #5a4a3a;
+    color: #f5efe3;
+    border-color: #5a4a3a;
+  }
+
+  /* Color picker — 3-col grid */
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    justify-items: center;
+  }
+  .color-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2.5px solid transparent;
+    padding: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(0,0,0,0.04);
+    transition: transform 0.12s;
+    cursor: pointer;
+  }
+  .color-btn:active { transform: scale(1.18); }
+  .color-btn.active {
+    border-color: #5a4a3a;
+    transform: scale(1.18);
+  }
+
+  input[type=range] {
+    width: 100%;
+    accent-color: #5a4a3a;
+    height: 28px;
+  }
+
+  /* Action row: save + reset side-by-side */
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin-top: 2px;
+  }
+  .save-btn, .reset-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 0;
+    font-size: 12px;
+    font-weight: 600;
+    min-height: 32px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .save-btn {
+    background: #5a4a3a;
+    color: #f5efe3;
+  }
+  .save-btn:active { background: #6f5d4a; }
+  .reset-btn {
+    background: rgba(255, 252, 245, 0.7);
+    color: #5a4a3a;
+    border: 1.5px solid rgba(90, 74, 58, 0.15);
+  }
+  .reset-btn:active { background: rgba(90, 74, 58, 0.12); }
+
+  /* Gallery */
+  .gallery-group { margin-top: auto; }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+  .gallery-thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    background: linear-gradient(135deg, #a89888, #786858);
+    border-radius: 4px;
+    object-fit: contain;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    transition: transform 0.12s;
+  }
+  .gallery-thumb:active { transform: scale(0.94); }
+  .gallery-empty {
+    grid-column: 1 / -1;
+    font-size: 10px;
+    color: rgba(90, 74, 58, 0.4);
+    text-align: center;
+    padding: 12px 4px;
+    line-height: 1.4;
+  }
+
+  /* --- canvas pane ------------------------------------------------------ */
+  .canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    min-width: 0;
+    min-height: 0;
+  }
+  canvas {
+    background: linear-gradient(180deg, #a89888 0%, #786858 100%);
+    border-radius: 14px;
+    box-shadow:
+      0 14px 36px rgba(60, 48, 38, 0.32),
+      inset 0 0 0 1px rgba(90, 74, 58, 0.20);
+    display: block;
+    cursor: crosshair;
+    touch-action: none;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 1 / 1;
+    width: auto;
+    height: auto;
+  }
+
+  @media (hover: hover) {
+    .n-btn:hover { background: rgba(255, 252, 245, 0.95); }
+    .color-btn:hover { transform: scale(1.10); }
+    .save-btn:hover { background: #6f5d4a; }
+    .reset-btn:hover { background: rgba(255, 252, 245, 0.95); }
+  }
+  @media (max-width: 360px) {
+    .sidebar { flex: 0 0 104px; padding: 10px 8px; gap: 8px; }
+    .color-btn { width: 24px; height: 24px; }
+    .canvas-wrap { padding: 10px; }
+  }
+
+  /* Modal for viewing a saved piece */
+  .modal {
+    position: fixed; inset: 0;
+    background: rgba(40, 30, 22, 0.7);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+  .modal.show { display: flex; }
+  .modal-card {
+    background: linear-gradient(180deg, #a89888 0%, #786858 100%);
+    border-radius: 14px;
+    padding: 16px;
+    max-width: min(90vw, 480px);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+  .modal-img {
+    max-width: 100%;
+    max-height: 60vh;
+    background: transparent;
+  }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .modal-close { background: #f5efe3; color: #5a4a3a; }
+  .modal-delete { background: rgba(255, 100, 100, 0.85); color: white; }
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-title">종이 오리기</div>
+
+    <div class="group">
+      <div class="group-label">대칭</div>
+      <div class="n-grid">
+        <button class="n-btn" data-n="4">4</button>
+        <button class="n-btn" data-n="6">6</button>
+        <button class="n-btn active" data-n="8">8</button>
+        <button class="n-btn" data-n="12">12</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-label">종이</div>
+      <div class="color-grid" id="palette"></div>
+    </div>
+
+    <div class="group">
+      <div class="group-label">붓</div>
+      <input type="range" id="brush" min="3" max="20" value="8">
+    </div>
+
+    <div class="action-row">
+      <button class="save-btn" id="save">저장</button>
+      <button class="reset-btn" id="reset">새종이</button>
+    </div>
+
+    <div class="group gallery-group">
+      <div class="group-label">갤러리</div>
+      <div class="gallery-grid" id="gallery"></div>
+    </div>
+  </aside>
+
+  <main class="canvas-wrap">
+    <canvas id="canvas" width="500" height="500"></canvas>
+  </main>
+
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <img id="modal-img" class="modal-img" />
+      <div class="modal-actions">
+        <button class="modal-btn modal-delete" id="modal-delete">삭제</button>
+        <button class="modal-btn modal-close" id="modal-close">닫기</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ============================================================================
+// Config
+// ============================================================================
+const CANVAS_W = 500
+const CANVAS_H = 500
+const W = CANVAS_W
+const H = CANVAS_H
+const PAPER_RADIUS = (W / 2) - 14   // small inset
+
+const COLORS = [
+  '#f7ecd8', '#f5dba8', '#f4c4a0', '#eda8a8', '#e8a8c4',
+  '#d8b8e0', '#b8c0e0', '#a8c8e0', '#a8d8c0', '#c8d8a0', '#c8a890',
+]
+const PAPER = 1, CUT = 0
+const cells = new Uint8Array(W * H)
+
+let symmetryN = 8
+let paperHex = COLORS[4]   // soft pink default
+let paperPacked = packColor(paperHex)
+let brushSize = 8
+let isCutting = false
+let lastX = 0, lastY = 0
+let dirty = true
+
+// ============================================================================
+// Color packing
+// ============================================================================
+function packColor(hex) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return (0xff << 24) | (b << 16) | (g << 8) | r
+}
+
+// ============================================================================
+// Paper state — initialize a circular sheet
+// ============================================================================
+function newPaper() {
+  const cx = W / 2, cy = H / 2
+  const r2 = PAPER_RADIUS * PAPER_RADIUS
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const dx = x - cx, dy = y - cy
+      cells[y * W + x] = (dx * dx + dy * dy <= r2) ? PAPER : CUT
+    }
+  }
+  dirty = true
+}
+
+// ============================================================================
+// Cutting — N-fold dihedral symmetry (rotation + reflection)
+// ============================================================================
+function eraseBrush(cx, cy, radius) {
+  const r2 = radius * radius
+  const x0 = Math.max(0, Math.floor(cx - radius))
+  const x1 = Math.min(W, Math.ceil(cx + radius))
+  const y0 = Math.max(0, Math.floor(cy - radius))
+  const y1 = Math.min(H, Math.ceil(cy + radius))
+  for (let y = y0; y < y1; y++) {
+    const rowBase = y * W
+    const dy = y - cy
+    for (let x = x0; x < x1; x++) {
+      const dx = x - cx
+      if (dx * dx + dy * dy <= r2 && cells[rowBase + x] === PAPER) {
+        cells[rowBase + x] = CUT
+      }
+    }
+  }
+}
+
+function cutPoint(px, py, radius) {
+  const cx = W / 2, cy = H / 2
+  const ddx = px - cx, ddy = py - cy
+  const r = Math.sqrt(ddx * ddx + ddy * ddy)
+  if (r < 0.001) {
+    eraseBrush(cx, cy, radius)
+    dirty = true
+    return
+  }
+  const baseAngle = Math.atan2(ddy, ddx)
+  const step = (2 * Math.PI) / symmetryN
+  for (let i = 0; i < symmetryN; i++) {
+    const theta = i * step
+    const a1 = baseAngle + theta
+    eraseBrush(cx + r * Math.cos(a1), cy + r * Math.sin(a1), radius)
+    const a2 = -baseAngle + theta
+    eraseBrush(cx + r * Math.cos(a2), cy + r * Math.sin(a2), radius)
+  }
+  dirty = true
+}
+
+function cutLine(x0, y0, x1, y1, radius) {
+  const dx = x1 - x0, dy = y1 - y0
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  const steps = Math.max(1, Math.ceil(dist / Math.max(1, radius * 0.5)))
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps
+    cutPoint(x0 + dx * t, y0 + dy * t, radius)
+  }
+}
+
+// ============================================================================
+// Rendering
+// ============================================================================
+const canvas = document.getElementById('canvas')
+const ctx = canvas.getContext('2d')
+const imgData = ctx.createImageData(W, H)
+const pixelView = new Uint32Array(imgData.data.buffer)
+
+function render() {
+  if (!dirty) return
+  for (let i = 0; i < cells.length; i++) {
+    pixelView[i] = cells[i] === PAPER ? paperPacked : 0
+  }
+  ctx.putImageData(imgData, 0, 0)
+  dirty = false
+}
+
+function tick() {
+  render()
+  requestAnimationFrame(tick)
+}
+
+// ============================================================================
+// Input
+// ============================================================================
+function pos(e) {
+  const rect = canvas.getBoundingClientRect()
+  return {
+    x: (e.clientX - rect.left) * (CANVAS_W / rect.width),
+    y: (e.clientY - rect.top) * (CANVAS_H / rect.height),
+  }
+}
+canvas.addEventListener('pointerdown', (e) => {
+  isCutting = true
+  canvas.setPointerCapture(e.pointerId)
+  const p = pos(e)
+  cutPoint(p.x, p.y, brushSize)
+  lastX = p.x; lastY = p.y
+  e.preventDefault()
+})
+canvas.addEventListener('pointermove', (e) => {
+  if (!isCutting) return
+  const p = pos(e)
+  cutLine(lastX, lastY, p.x, p.y, brushSize)
+  lastX = p.x; lastY = p.y
+  e.preventDefault()
+})
+canvas.addEventListener('pointerup',     () => { isCutting = false })
+canvas.addEventListener('pointercancel', () => { isCutting = false })
+document.addEventListener('gesturestart', (e) => e.preventDefault())
+
+// ============================================================================
+// Sidebar wiring
+// ============================================================================
+const palette = document.getElementById('palette')
+COLORS.forEach((c, i) => {
+  const btn = document.createElement('button')
+  btn.className = 'color-btn' + (i === 4 ? ' active' : '')
+  btn.style.background = c
+  btn.addEventListener('click', () => {
+    paperHex = c
+    paperPacked = packColor(c)
+    dirty = true
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+  })
+  palette.appendChild(btn)
+})
+
+document.querySelectorAll('.n-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    symmetryN = +btn.dataset.n
+    document.querySelectorAll('.n-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+  })
+})
+
+document.getElementById('brush').addEventListener('input', (e) => { brushSize = +e.target.value })
+document.getElementById('reset').addEventListener('click', newPaper)
+document.getElementById('save').addEventListener('click', saveCurrent)
+
+// ============================================================================
+// Local gallery
+// ============================================================================
+const GALLERY_KEY = 'papercut-gallery-v1'
+const GALLERY_MAX = 60
+
+function loadGallery() {
+  try {
+    return JSON.parse(localStorage.getItem(GALLERY_KEY) || '[]')
+  } catch { return [] }
+}
+function saveGallery(list) {
+  try { localStorage.setItem(GALLERY_KEY, JSON.stringify(list)) }
+  catch (e) { console.warn('localStorage full', e) }
+}
+
+function saveCurrent() {
+  // Make sure latest state is rendered, then snapshot
+  dirty = true
+  render()
+  const img = canvas.toDataURL('image/png')
+  const list = loadGallery()
+  list.push({ img, n: symmetryN, color: paperHex, t: Date.now() })
+  while (list.length > GALLERY_MAX) list.shift()
+  saveGallery(list)
+  renderGallery()
+  flashSave()
+}
+
+function flashSave() {
+  const btn = document.getElementById('save')
+  const original = btn.textContent
+  btn.textContent = '✓'
+  btn.style.background = '#7a9b6a'
+  setTimeout(() => {
+    btn.textContent = original
+    btn.style.background = ''
+  }, 700)
+}
+
+function renderGallery() {
+  const grid = document.getElementById('gallery')
+  const list = loadGallery()
+  grid.innerHTML = ''
+  if (list.length === 0) {
+    const empty = document.createElement('div')
+    empty.className = 'gallery-empty'
+    empty.textContent = '저장한 작품이\n여기에 모여요'
+    empty.style.whiteSpace = 'pre-line'
+    grid.appendChild(empty)
+    return
+  }
+  list.slice().reverse().forEach((item, revIdx) => {
+    const realIdx = list.length - 1 - revIdx
+    const img = document.createElement('img')
+    img.src = item.img
+    img.className = 'gallery-thumb'
+    img.title = `${item.n}각 · ${new Date(item.t).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+    img.addEventListener('click', () => openModal(realIdx))
+    grid.appendChild(img)
+  })
+}
+
+// ============================================================================
+// Modal — view / delete a saved piece
+// ============================================================================
+const modal = document.getElementById('modal')
+const modalImg = document.getElementById('modal-img')
+let modalIdx = -1
+
+function openModal(idx) {
+  const list = loadGallery()
+  if (!list[idx]) return
+  modalIdx = idx
+  modalImg.src = list[idx].img
+  modal.classList.add('show')
+}
+function closeModal() {
+  modal.classList.remove('show')
+  modalIdx = -1
+}
+document.getElementById('modal-close').addEventListener('click', closeModal)
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal() })
+document.getElementById('modal-delete').addEventListener('click', () => {
+  if (modalIdx < 0) return
+  const list = loadGallery()
+  list.splice(modalIdx, 1)
+  saveGallery(list)
+  renderGallery()
+  closeModal()
+})
+
+// ============================================================================
+// Boot
+// ============================================================================
+newPaper()
+renderGallery()
+tick()
+</script>
+</body>
+</html>
