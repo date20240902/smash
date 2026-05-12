@@ -34,11 +34,11 @@
 
   /* --- sidebar ---------------------------------------------------------- */
   .sidebar {
-    flex: 0 0 124px;
+    flex: 0 0 132px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 14px 12px;
+    gap: 9px;
+    padding: 12px 10px;
     background: rgba(255, 252, 245, 0.55);
     border-right: 1px solid rgba(90, 74, 58, 0.10);
     overflow-y: auto;
@@ -60,41 +60,39 @@
     text-transform: uppercase;
   }
 
-  /* N-fold chips */
-  .n-grid {
+  .n-grid, .tool-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 5px;
   }
-  .n-btn {
+  .n-btn, .tool-btn {
     border: 1.5px solid rgba(90, 74, 58, 0.15);
     background: rgba(255, 252, 245, 0.7);
     border-radius: 8px;
     padding: 7px 0;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: #5a4a3a;
     transition: background 0.15s, color 0.15s;
     font-family: inherit;
     cursor: pointer;
   }
-  .n-btn:active { background: rgba(90, 74, 58, 0.12); }
-  .n-btn.active {
+  .n-btn:active, .tool-btn:active { background: rgba(90, 74, 58, 0.12); }
+  .n-btn.active, .tool-btn.active {
     background: #5a4a3a;
     color: #f5efe3;
     border-color: #5a4a3a;
   }
 
-  /* Color picker — 3-col grid */
   .color-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+    gap: 5px;
     justify-items: center;
   }
   .color-btn {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     border: 2.5px solid transparent;
     padding: 0;
@@ -108,13 +106,41 @@
     transform: scale(1.18);
   }
 
+  /* Shape grid for punch tool */
+  .shape-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    justify-items: center;
+  }
+  .shape-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1.5px solid rgba(90, 74, 58, 0.15);
+    background: rgba(255, 252, 245, 0.7);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .shape-btn:active { background: rgba(90, 74, 58, 0.12); }
+  .shape-btn.active {
+    background: #5a4a3a;
+    border-color: #5a4a3a;
+  }
+  .shape-btn svg { width: 18px; height: 18px; }
+  .shape-btn .stroke { stroke: #5a4a3a; }
+  .shape-btn.active .stroke { stroke: #f5efe3; }
+
   input[type=range] {
     width: 100%;
     accent-color: #5a4a3a;
-    height: 28px;
+    height: 26px;
   }
 
-  /* Action row: save + reset side-by-side */
   .action-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -127,7 +153,7 @@
     padding: 8px 0;
     font-size: 12px;
     font-weight: 600;
-    min-height: 32px;
+    min-height: 30px;
     font-family: inherit;
     cursor: pointer;
   }
@@ -143,13 +169,12 @@
   }
   .reset-btn:active { background: rgba(90, 74, 58, 0.12); }
 
-  /* Gallery */
   .gallery-group { margin-top: auto; }
   .gallery-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 4px;
-    max-height: 180px;
+    max-height: 160px;
     overflow-y: auto;
     padding-right: 2px;
   }
@@ -169,8 +194,9 @@
     font-size: 10px;
     color: rgba(90, 74, 58, 0.4);
     text-align: center;
-    padding: 12px 4px;
+    padding: 10px 4px;
     line-height: 1.4;
+    white-space: pre-line;
   }
 
   /* --- canvas pane ------------------------------------------------------ */
@@ -202,18 +228,19 @@
   }
 
   @media (hover: hover) {
-    .n-btn:hover { background: rgba(255, 252, 245, 0.95); }
+    .n-btn:hover, .tool-btn:hover { background: rgba(255, 252, 245, 0.95); }
     .color-btn:hover { transform: scale(1.10); }
+    .shape-btn:hover { background: rgba(255, 252, 245, 0.95); }
     .save-btn:hover { background: #6f5d4a; }
     .reset-btn:hover { background: rgba(255, 252, 245, 0.95); }
   }
   @media (max-width: 360px) {
-    .sidebar { flex: 0 0 104px; padding: 10px 8px; gap: 8px; }
-    .color-btn { width: 24px; height: 24px; }
+    .sidebar { flex: 0 0 112px; padding: 10px 8px; gap: 7px; }
+    .color-btn { width: 22px; height: 22px; }
+    .shape-btn { width: 26px; height: 26px; }
     .canvas-wrap { padding: 10px; }
   }
 
-  /* Modal for viewing a saved piece */
   .modal {
     position: fixed; inset: 0;
     background: rgba(40, 30, 22, 0.7);
@@ -239,7 +266,6 @@
   .modal-img {
     max-width: 100%;
     max-height: 60vh;
-    background: transparent;
   }
   .modal-actions { display: flex; gap: 8px; }
   .modal-btn {
@@ -271,12 +297,32 @@
 
     <div class="group">
       <div class="group-label">종이</div>
-      <div class="color-grid" id="palette"></div>
+      <div class="color-grid" id="paper-palette"></div>
     </div>
 
     <div class="group">
-      <div class="group-label">붓</div>
-      <input type="range" id="brush" min="3" max="20" value="8">
+      <div class="group-label">도구</div>
+      <div class="tool-grid">
+        <button class="tool-btn active" data-tool="brush">붓</button>
+        <button class="tool-btn" data-tool="punch">펀치</button>
+        <button class="tool-btn" data-tool="scissor">가위</button>
+        <button class="tool-btn" data-tool="dot">점</button>
+      </div>
+    </div>
+
+    <div class="group" id="shape-group" style="display:none">
+      <div class="group-label">모양</div>
+      <div class="shape-grid" id="shapes"></div>
+    </div>
+
+    <div class="group" id="dot-color-group" style="display:none">
+      <div class="group-label">점 색</div>
+      <div class="color-grid" id="dot-palette"></div>
+    </div>
+
+    <div class="group">
+      <div class="group-label">크기</div>
+      <input type="range" id="size" min="3" max="20" value="8">
     </div>
 
     <div class="action-row">
@@ -312,25 +358,40 @@ const CANVAS_W = 500
 const CANVAS_H = 500
 const W = CANVAS_W
 const H = CANVAS_H
-const PAPER_RADIUS = (W / 2) - 14   // small inset
+const PAPER_RADIUS = (W / 2) - 14
 
 const COLORS = [
   '#f7ecd8', '#f5dba8', '#f4c4a0', '#eda8a8', '#e8a8c4',
   '#d8b8e0', '#b8c0e0', '#a8c8e0', '#a8d8c0', '#c8d8a0', '#c8a890',
 ]
-const PAPER = 1, CUT = 0
-const cells = new Uint8Array(W * H)
+// Deeper palette options for dot decorations — better contrast on pastels.
+const DOT_COLORS = [
+  '#5a4a3a', '#7a3030', '#8a5a20', '#a88838', '#3a5a3a',
+  '#306a78', '#3a4a7a', '#5a3a6a', '#7a3a5a', '#202020', '#fafafa',
+]
+const SHAPES = ['circle', 'square', 'triangle', 'diamond', 'star', 'heart']
 
-let symmetryN = 8
-let paperHex = COLORS[4]   // soft pink default
+const CUT = 0, PAPER = 1, DOT = 2
+const cells     = new Uint8Array(W * H)
+const dotColors = new Uint32Array(W * H)
+
+let symmetryN  = 8
+let paperHex   = COLORS[4]
 let paperPacked = packColor(paperHex)
-let brushSize = 8
-let isCutting = false
+let dotHex     = DOT_COLORS[0]
+let dotPacked  = packColor(dotHex)
+let currentTool = 'brush'       // 'brush' | 'punch' | 'scissor' | 'dot'
+let currentShape = 'circle'
+let sizes = { brush: 8, punch: 16, scissor: 2, dot: 4 }
+let sizeRange = { brush: [3, 20], punch: [6, 32], scissor: [1, 4], dot: [2, 12] }
+
+let isInking = false
 let lastX = 0, lastY = 0
+let punchTravel = 0  // distance since last drag-stamp
 let dirty = true
 
 // ============================================================================
-// Color packing
+// Color packing — ImageData = RGBA little-endian → Uint32 = ABGR
 // ============================================================================
 function packColor(hex) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -349,65 +410,169 @@ function newPaper() {
     for (let x = 0; x < W; x++) {
       const dx = x - cx, dy = y - cy
       cells[y * W + x] = (dx * dx + dy * dy <= r2) ? PAPER : CUT
+      dotColors[y * W + x] = 0
     }
   }
   dirty = true
 }
 
 // ============================================================================
-// Cutting — N-fold dihedral symmetry (rotation + reflection)
+// Shape inclusion tests (used by both punch tool and brush/dot if needed)
 // ============================================================================
-function eraseBrush(cx, cy, radius) {
+function inShape(shape, dx, dy, size) {
+  switch (shape) {
+    case 'circle':
+      return dx * dx + dy * dy <= size * size
+    case 'square':
+      return Math.abs(dx) <= size && Math.abs(dy) <= size
+    case 'diamond':
+      return Math.abs(dx) + Math.abs(dy) <= size
+    case 'triangle': {
+      const h = size * Math.sqrt(3)
+      const yT = -h / 3, yB = (2 * h) / 3
+      if (dy < yT || dy > yB) return false
+      const widthAtY = (yB - dy) / Math.sqrt(3)
+      return Math.abs(dx) <= widthAtY
+    }
+    case 'star': {
+      const r = Math.sqrt(dx * dx + dy * dy)
+      if (r > size) return false
+      let a = Math.atan2(-dy, dx) - Math.PI / 2
+      a = ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)
+      const N = 5
+      const spikeA = (2 * Math.PI) / N
+      const half = spikeA / 2
+      const localA = a % spikeA
+      const distFromPeak = Math.abs(localA - half)
+      const t = distFromPeak / half
+      const inner = size * 0.42
+      const outer = size
+      const localR = outer * (1 - t) + inner * t
+      return r <= localR
+    }
+    case 'heart': {
+      // Standard heart curve, normalized to fit a "size" radius.
+      const x = dx / size
+      const y = -dy / size
+      const v = Math.pow(x * x + y * y - 1, 3) - x * x * Math.pow(y, 3)
+      return v <= 0 && y > -1.3 && y < 1.3 && Math.abs(x) < 1.4
+    }
+  }
+  return false
+}
+
+// ============================================================================
+// Brush / paint primitives — all take (cx, cy) in canvas coords
+// ============================================================================
+function eraseDisc(cx, cy, radius) {
   const r2 = radius * radius
   const x0 = Math.max(0, Math.floor(cx - radius))
   const x1 = Math.min(W, Math.ceil(cx + radius))
   const y0 = Math.max(0, Math.floor(cy - radius))
   const y1 = Math.min(H, Math.ceil(cy + radius))
   for (let y = y0; y < y1; y++) {
-    const rowBase = y * W
+    const row = y * W
     const dy = y - cy
     for (let x = x0; x < x1; x++) {
       const dx = x - cx
-      if (dx * dx + dy * dy <= r2 && cells[rowBase + x] === PAPER) {
-        cells[rowBase + x] = CUT
+      if (dx * dx + dy * dy <= r2 && cells[row + x] !== CUT) {
+        cells[row + x] = CUT
+        dotColors[row + x] = 0
       }
     }
   }
 }
 
-function cutPoint(px, py, radius) {
+function stampShapeMask(shape, cx, cy, size) {
+  const x0 = Math.max(0, Math.floor(cx - size - 1))
+  const x1 = Math.min(W, Math.ceil(cx + size + 1))
+  const y0 = Math.max(0, Math.floor(cy - size - 1))
+  const y1 = Math.min(H, Math.ceil(cy + size + 1))
+  for (let y = y0; y < y1; y++) {
+    const row = y * W
+    const dy = y - cy
+    for (let x = x0; x < x1; x++) {
+      const dx = x - cx
+      if (inShape(shape, dx, dy, size) && cells[row + x] !== CUT) {
+        cells[row + x] = CUT
+        dotColors[row + x] = 0
+      }
+    }
+  }
+}
+
+function paintDot(cx, cy, radius, color) {
+  const r2 = radius * radius
+  const x0 = Math.max(0, Math.floor(cx - radius))
+  const x1 = Math.min(W, Math.ceil(cx + radius))
+  const y0 = Math.max(0, Math.floor(cy - radius))
+  const y1 = Math.min(H, Math.ceil(cy + radius))
+  for (let y = y0; y < y1; y++) {
+    const row = y * W
+    const dy = y - cy
+    for (let x = x0; x < x1; x++) {
+      const dx = x - cx
+      // Only land on existing paper (not on cut areas)
+      if (dx * dx + dy * dy <= r2 && cells[row + x] !== CUT) {
+        cells[row + x] = DOT
+        dotColors[row + x] = color
+      }
+    }
+  }
+}
+
+// ============================================================================
+// Dihedral D_N symmetric application — for each canvas point, apply `fn` at
+// N rotated copies and their reflections. fn receives (x, y).
+// ============================================================================
+function withSymmetry(px, py, fn) {
   const cx = W / 2, cy = H / 2
   const ddx = px - cx, ddy = py - cy
   const r = Math.sqrt(ddx * ddx + ddy * ddy)
-  if (r < 0.001) {
-    eraseBrush(cx, cy, radius)
-    dirty = true
-    return
-  }
+  if (r < 0.001) { fn(cx, cy); return }
   const baseAngle = Math.atan2(ddy, ddx)
   const step = (2 * Math.PI) / symmetryN
   for (let i = 0; i < symmetryN; i++) {
     const theta = i * step
     const a1 = baseAngle + theta
-    eraseBrush(cx + r * Math.cos(a1), cy + r * Math.sin(a1), radius)
+    fn(cx + r * Math.cos(a1), cy + r * Math.sin(a1))
     const a2 = -baseAngle + theta
-    eraseBrush(cx + r * Math.cos(a2), cy + r * Math.sin(a2), radius)
-  }
-  dirty = true
-}
-
-function cutLine(x0, y0, x1, y1, radius) {
-  const dx = x1 - x0, dy = y1 - y0
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  const steps = Math.max(1, Math.ceil(dist / Math.max(1, radius * 0.5)))
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps
-    cutPoint(x0 + dx * t, y0 + dy * t, radius)
+    fn(cx + r * Math.cos(a2), cy + r * Math.sin(a2))
   }
 }
 
 // ============================================================================
-// Rendering
+// Tool actions — each operates on a single (x, y), symmetry handled here
+// ============================================================================
+function applyBrush(x, y) {
+  withSymmetry(x, y, (px, py) => eraseDisc(px, py, sizes.brush))
+  dirty = true
+}
+function applyPunch(x, y) {
+  withSymmetry(x, y, (px, py) => stampShapeMask(currentShape, px, py, sizes.punch))
+  dirty = true
+}
+function applyScissor(x, y) {
+  withSymmetry(x, y, (px, py) => eraseDisc(px, py, sizes.scissor))
+  dirty = true
+}
+function applyDot(x, y) {
+  withSymmetry(x, y, (px, py) => paintDot(px, py, sizes.dot, dotPacked))
+  dirty = true
+}
+
+function interpolate(fn, x0, y0, x1, y1, stepPx) {
+  const dx = x1 - x0, dy = y1 - y0
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  const steps = Math.max(1, Math.ceil(dist / Math.max(1, stepPx)))
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps
+    fn(x0 + dx * t, y0 + dy * t)
+  }
+}
+
+// ============================================================================
+// Rendering — three-state cell with separate dot color array
 // ============================================================================
 const canvas = document.getElementById('canvas')
 const ctx = canvas.getContext('2d')
@@ -417,7 +582,8 @@ const pixelView = new Uint32Array(imgData.data.buffer)
 function render() {
   if (!dirty) return
   for (let i = 0; i < cells.length; i++) {
-    pixelView[i] = cells[i] === PAPER ? paperPacked : 0
+    const c = cells[i]
+    pixelView[i] = c === CUT ? 0 : c === PAPER ? paperPacked : dotColors[i]
   }
   ctx.putImageData(imgData, 0, 0)
   dirty = false
@@ -429,7 +595,7 @@ function tick() {
 }
 
 // ============================================================================
-// Input
+// Input — dispatch by current tool
 // ============================================================================
 function pos(e) {
   const rect = canvas.getBoundingClientRect()
@@ -438,43 +604,77 @@ function pos(e) {
     y: (e.clientY - rect.top) * (CANVAS_H / rect.height),
   }
 }
+
+function handleDown(x, y) {
+  if (currentTool === 'brush')        applyBrush(x, y)
+  else if (currentTool === 'punch')   applyPunch(x, y)
+  else if (currentTool === 'scissor') applyScissor(x, y)
+  else if (currentTool === 'dot')     applyDot(x, y)
+  lastX = x; lastY = y; punchTravel = 0
+}
+
+function handleMove(x, y) {
+  if (currentTool === 'brush') {
+    interpolate(applyBrush, lastX, lastY, x, y, Math.max(1, sizes.brush * 0.5))
+  } else if (currentTool === 'scissor') {
+    interpolate(applyScissor, lastX, lastY, x, y, 1)
+  } else if (currentTool === 'dot') {
+    interpolate(applyDot, lastX, lastY, x, y, Math.max(1, sizes.dot * 0.7))
+  } else if (currentTool === 'punch') {
+    // Scatter stamps along the drag at >= punch-size intervals so they don't pile up.
+    const d = Math.hypot(x - lastX, y - lastY)
+    punchTravel += d
+    const gap = sizes.punch * 1.6
+    if (punchTravel >= gap) {
+      applyPunch(x, y)
+      punchTravel = 0
+    }
+  }
+  lastX = x; lastY = y
+}
+
 canvas.addEventListener('pointerdown', (e) => {
-  isCutting = true
+  isInking = true
   canvas.setPointerCapture(e.pointerId)
   const p = pos(e)
-  cutPoint(p.x, p.y, brushSize)
-  lastX = p.x; lastY = p.y
+  handleDown(p.x, p.y)
   e.preventDefault()
 })
 canvas.addEventListener('pointermove', (e) => {
-  if (!isCutting) return
+  if (!isInking) return
   const p = pos(e)
-  cutLine(lastX, lastY, p.x, p.y, brushSize)
-  lastX = p.x; lastY = p.y
+  handleMove(p.x, p.y)
   e.preventDefault()
 })
-canvas.addEventListener('pointerup',     () => { isCutting = false })
-canvas.addEventListener('pointercancel', () => { isCutting = false })
+canvas.addEventListener('pointerup',     () => { isInking = false })
+canvas.addEventListener('pointercancel', () => { isInking = false })
 document.addEventListener('gesturestart', (e) => e.preventDefault())
 
 // ============================================================================
-// Sidebar wiring
+// UI wiring
 // ============================================================================
-const palette = document.getElementById('palette')
-COLORS.forEach((c, i) => {
-  const btn = document.createElement('button')
-  btn.className = 'color-btn' + (i === 4 ? ' active' : '')
-  btn.style.background = c
-  btn.addEventListener('click', () => {
-    paperHex = c
-    paperPacked = packColor(c)
-    dirty = true
-    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'))
-    btn.classList.add('active')
+function buildPalette(rootId, colors, defaultIdx, onPick) {
+  const root = document.getElementById(rootId)
+  colors.forEach((c, i) => {
+    const btn = document.createElement('button')
+    btn.className = 'color-btn' + (i === defaultIdx ? ' active' : '')
+    btn.style.background = c
+    btn.addEventListener('click', () => {
+      onPick(c)
+      root.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+    })
+    root.appendChild(btn)
   })
-  palette.appendChild(btn)
+}
+buildPalette('paper-palette', COLORS, 4, (c) => {
+  paperHex = c; paperPacked = packColor(c); dirty = true
+})
+buildPalette('dot-palette', DOT_COLORS, 0, (c) => {
+  dotHex = c; dotPacked = packColor(c)
 })
 
+// N chips
 document.querySelectorAll('.n-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     symmetryN = +btn.dataset.n
@@ -483,30 +683,67 @@ document.querySelectorAll('.n-btn').forEach(btn => {
   })
 })
 
-document.getElementById('brush').addEventListener('input', (e) => { brushSize = +e.target.value })
+// Tool tabs — also reveals/hides conditional groups & updates slider range.
+const sizeSlider = document.getElementById('size')
+function selectTool(name) {
+  currentTool = name
+  document.querySelectorAll('.tool-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tool === name)
+  })
+  document.getElementById('shape-group').style.display = (name === 'punch') ? '' : 'none'
+  document.getElementById('dot-color-group').style.display = (name === 'dot') ? '' : 'none'
+  const [mn, mx] = sizeRange[name]
+  sizeSlider.min = mn
+  sizeSlider.max = mx
+  sizeSlider.value = sizes[name]
+}
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => selectTool(btn.dataset.tool))
+})
+
+// Shape icons — tiny inline SVGs so we don't depend on font glyphs.
+const SHAPE_SVG = {
+  circle:   '<circle cx="9" cy="9" r="7" fill="currentColor" class="stroke" stroke-width="0"/>',
+  square:   '<rect x="2" y="2" width="14" height="14" rx="1" fill="currentColor" class="stroke"/>',
+  triangle: '<polygon points="9,2 16,15 2,15" fill="currentColor" class="stroke"/>',
+  diamond:  '<polygon points="9,2 16,9 9,16 2,9" fill="currentColor" class="stroke"/>',
+  star:     '<polygon points="9,1.5 11.06,6.84 16.85,7.07 12.32,10.66 13.85,16.27 9,13.05 4.15,16.27 5.68,10.66 1.15,7.07 6.94,6.84" fill="currentColor" class="stroke"/>',
+  heart:    '<path d="M9 16 C 1 10, 1 3, 9 6 C 17 3, 17 10, 9 16 Z" fill="currentColor" class="stroke"/>',
+}
+const shapesRoot = document.getElementById('shapes')
+SHAPES.forEach((s, i) => {
+  const btn = document.createElement('button')
+  btn.className = 'shape-btn' + (i === 0 ? ' active' : '')
+  btn.dataset.shape = s
+  btn.innerHTML = `<svg viewBox="0 0 18 18">${SHAPE_SVG[s]}</svg>`
+  btn.addEventListener('click', () => {
+    currentShape = s
+    shapesRoot.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+  })
+  shapesRoot.appendChild(btn)
+})
+
+sizeSlider.addEventListener('input', (e) => { sizes[currentTool] = +e.target.value })
 document.getElementById('reset').addEventListener('click', newPaper)
 document.getElementById('save').addEventListener('click', saveCurrent)
 
 // ============================================================================
 // Local gallery
 // ============================================================================
-const GALLERY_KEY = 'papercut-gallery-v1'
+const GALLERY_KEY = 'papercut-gallery-v2'
 const GALLERY_MAX = 60
 
 function loadGallery() {
-  try {
-    return JSON.parse(localStorage.getItem(GALLERY_KEY) || '[]')
-  } catch { return [] }
+  try { return JSON.parse(localStorage.getItem(GALLERY_KEY) || '[]') }
+  catch { return [] }
 }
 function saveGallery(list) {
   try { localStorage.setItem(GALLERY_KEY, JSON.stringify(list)) }
   catch (e) { console.warn('localStorage full', e) }
 }
-
 function saveCurrent() {
-  // Make sure latest state is rendered, then snapshot
-  dirty = true
-  render()
+  dirty = true; render()
   const img = canvas.toDataURL('image/png')
   const list = loadGallery()
   list.push({ img, n: symmetryN, color: paperHex, t: Date.now() })
@@ -515,18 +752,13 @@ function saveCurrent() {
   renderGallery()
   flashSave()
 }
-
 function flashSave() {
   const btn = document.getElementById('save')
-  const original = btn.textContent
+  const orig = btn.textContent
   btn.textContent = '✓'
   btn.style.background = '#7a9b6a'
-  setTimeout(() => {
-    btn.textContent = original
-    btn.style.background = ''
-  }, 700)
+  setTimeout(() => { btn.textContent = orig; btn.style.background = '' }, 700)
 }
-
 function renderGallery() {
   const grid = document.getElementById('gallery')
   const list = loadGallery()
@@ -535,7 +767,6 @@ function renderGallery() {
     const empty = document.createElement('div')
     empty.className = 'gallery-empty'
     empty.textContent = '저장한 작품이\n여기에 모여요'
-    empty.style.whiteSpace = 'pre-line'
     grid.appendChild(empty)
     return
   }
@@ -544,19 +775,17 @@ function renderGallery() {
     const img = document.createElement('img')
     img.src = item.img
     img.className = 'gallery-thumb'
-    img.title = `${item.n}각 · ${new Date(item.t).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
     img.addEventListener('click', () => openModal(realIdx))
     grid.appendChild(img)
   })
 }
 
 // ============================================================================
-// Modal — view / delete a saved piece
+// Modal
 // ============================================================================
 const modal = document.getElementById('modal')
 const modalImg = document.getElementById('modal-img')
 let modalIdx = -1
-
 function openModal(idx) {
   const list = loadGallery()
   if (!list[idx]) return
@@ -582,6 +811,7 @@ document.getElementById('modal-delete').addEventListener('click', () => {
 // ============================================================================
 // Boot
 // ============================================================================
+selectTool('brush')
 newPaper()
 renderGallery()
 tick()
