@@ -1,103 +1,111 @@
 import { useRef } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { Environment, OrbitControls } from '@react-three/drei'
-import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
-import type { ObjectPreset } from '../data/objects'
-import type { ToolPreset } from '../data/tools'
-import { Breakable, type BreakableHandle } from './Breakable'
-import { Tool } from './Tool'
+import type { PaperPreset } from '../data/papers'
+import { Paper } from './Paper'
+import type { ImpulseField } from './impulses'
+import { spawnImpulse, tickImpulses } from './impulses'
 
-interface SpawnedItem {
+export interface SpawnedPaper {
   id: number
-  preset: ObjectPreset
-  position: [number, number, number]
+  preset: PaperPreset
+  spawn: [number, number, number]
+  seed: number
 }
 
 interface Props {
-  items: SpawnedItem[]
-  tool: ToolPreset
-  onShatter: () => void
+  papers: SpawnedPaper[]
 }
 
-export function Scene({ items, tool, onShatter }: Props) {
-  const refs = useRef<Map<number, BreakableHandle | null>>(new Map())
-
-  function handleStrike(worldPoint: THREE.Vector3, direction: THREE.Vector3, power: number) {
-    // Find the closest item to the strike point and hit it.
-    let closest: { id: number; dist: number } | null = null
-    for (const item of items) {
-      const dx = item.position[0] - worldPoint.x
-      const dz = item.position[2] - worldPoint.z
-      const d = Math.hypot(dx, dz)
-      if (!closest || d < closest.dist) closest = { id: item.id, dist: d }
-    }
-    if (!closest || closest.dist > 2.5) return
-    const handle = refs.current.get(closest.id)
-    if (!handle) return
-    const shattered = handle.strike(worldPoint, direction, power)
-    if (shattered) onShatter()
-  }
-
+export function Scene({ papers }: Props) {
   return (
-    <Canvas shadows camera={{ position: [0, 3, 6], fov: 50 }}>
-      <color attach="background" args={['#0b0d12']} />
-      <ambientLight intensity={0.4} />
-      <directionalLight
-        position={[5, 8, 4]}
-        intensity={1.2}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
-      <Environment preset="city" />
-
-      <Physics gravity={[0, -9.81, 0]}>
-        {/* Floor / table */}
-        <RigidBody type="fixed" friction={0.9} restitution={0.1}>
-          <mesh receiveShadow position={[0, 0.95, 0]}>
-            <boxGeometry args={[12, 0.1, 8]} />
-            <meshStandardMaterial color="#1b2030" roughness={0.9} />
-          </mesh>
-          <CuboidCollider args={[6, 0.05, 4]} position={[0, 0.95, 0]} />
-        </RigidBody>
-
-        {/* Walls (invisible) to keep shards from flying off forever */}
-        <RigidBody type="fixed">
-          <CuboidCollider args={[6, 3, 0.1]} position={[0, 3, -4]} />
-          <CuboidCollider args={[6, 3, 0.1]} position={[0, 3, 4]} />
-          <CuboidCollider args={[0.1, 3, 4]} position={[-6, 3, 0]} />
-          <CuboidCollider args={[0.1, 3, 4]} position={[6, 3, 0]} />
-        </RigidBody>
-
-        {items.map((item) => (
-          <Breakable
-            key={item.id}
-            ref={(h) => {
-              refs.current.set(item.id, h)
-            }}
-            preset={item.preset}
-            position={[item.position[0], 1.0 + item.preset.groundOffset, item.position[2]]}
-          />
-        ))}
-
-        <Tool tool={tool} onStrike={handleStrike} />
-      </Physics>
-
-      <OrbitControls
-        enablePan={false}
-        minDistance={3}
-        maxDistance={12}
-        maxPolarAngle={Math.PI / 2.2}
-        makeDefault
-        mouseButtons={{
-          LEFT: undefined as unknown as THREE.MOUSE,
-          MIDDLE: THREE.MOUSE.DOLLY,
-          RIGHT: THREE.MOUSE.ROTATE,
-        }}
-      />
+    <Canvas shadows camera={{ position: [0, 0, 9], fov: 45 }}>
+      <SceneContents papers={papers} />
     </Canvas>
   )
 }
 
-export type { SpawnedItem }
+function SceneContents({ papers }: Props) {
+  const impulses: ImpulseField = useRef([])
+  const { camera } = useThree()
+
+  useFrame((_, dt) => tickImpulses(impulses, dt))
+
+  function onPointerDown(e: ThreeEvent<PointerEvent>) {
+    // Convert click on the background plane to a world point at z=0.
+    const point = new THREE.Vector3(e.point.x, e.point.y, 0)
+    spawnImpulse(impulses, point, 1)
+  }
+
+  function onPointerMove(e: ThreeEvent<PointerEvent>) {
+    // While the pointer is down, leave a light trailing breeze.
+    if (e.buttons !== 1) return
+    const point = new THREE.Vector3(e.point.x, e.point.y, 0)
+    spawnImpulse(impulses, point, 0.35)
+  }
+
+  return (
+    <>
+      {/* Soft warm gradient background via a large plane behind the action. */}
+      <BackgroundGradient />
+
+      <ambientLight intensity={0.7} />
+      <directionalLight
+        position={[3, 4, 5]}
+        intensity={0.8}
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+      />
+      <hemisphereLight args={['#fff5e6', '#d8e4ec', 0.4]} />
+
+      {/* Invisible click-catcher plane in front of camera. */}
+      <mesh
+        position={[0, 0, 0]}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        // Slightly behind the papers so they still get foreground depth.
+        renderOrder={-1}
+      >
+        <planeGeometry args={[40, 40]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      {papers.map((p) => (
+        <Paper key={p.id} preset={p.preset} spawn={p.spawn} seed={p.seed} impulses={impulses} />
+      ))}
+
+      <FaceCamera camera={camera} />
+    </>
+  )
+}
+
+function FaceCamera({ camera }: { camera: THREE.Camera }) {
+  // Keep camera looking straight at origin so the click plane (z=0) maps
+  // cleanly to screen coordinates.
+  useFrame(() => camera.lookAt(0, 0, 0))
+  return null
+}
+
+function BackgroundGradient() {
+  // A large plane far behind, vertex-colored top→bottom for a paper-warm sky.
+  const geom = useRef<THREE.PlaneGeometry | null>(null)
+  if (!geom.current) {
+    const g = new THREE.PlaneGeometry(60, 40, 1, 1)
+    const colors = new Float32Array([
+      // top-left, top-right, bottom-left, bottom-right (PlaneGeometry order)
+      0.95, 0.93, 0.86,
+      0.95, 0.93, 0.86,
+      0.92, 0.84, 0.74,
+      0.92, 0.84, 0.74,
+    ])
+    g.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    geom.current = g
+  }
+  return (
+    <mesh position={[0, 0, -10]}>
+      <primitive object={geom.current} attach="geometry" />
+      <meshBasicMaterial vertexColors />
+    </mesh>
+  )
+}
